@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Currency Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .theme-toggle:hover {
+            background-color: #0056b3;
+
+        }
+        .converter-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .currency-select {
+            margin-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, input[type="number"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="converter-container">
+        <h1>Currency Converter</h1>
+        <div class="currency-select">
+            <label for="fromCurrency">From Currency:</label>
+            <select id="fromCurrency">
+                <option value="USD">USD</option>
+                <option value="INR">INR</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="JPY">JPY</option>
+                <option value="CAD">CAD</option>
+                <option value="AUD">AUD</option>
+            </select>
+        </div>
+        <div class="currency-select">
+            <label for="toCurrency">To Currency:</label>
+            <select id="toCurrency">
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+                <option value="JPY">JPY</option>
+                <option value="CAD">CAD</option>
+                <option value="AUD">AUD</option>
+            </select>
+        </div>
+        <input type="number" id="amount" placeholder="Enter Amount" min="0">
+        <button onclick="convertCurrency()">Convert</button>
+        <div id="result"></div>
+        <div id="error-message" class="error"></div>
+    </div>
+
+    <script>
+        const cache = {};
+        async function getExchangeRate(fromCurrency, toCurrency) {
+            const key = `${fromCurrency}_${toCurrency}`;
+            if (cache[key]) {
+                return cache[key];
+            }
+
+            const apiKey = 'YOUR_API_KEY'; // Replace with your actual API key
+            const apiUrl = `https://api.exchangerate-api.com/v4/latest/${fromCurrency}`;
+
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    const { status } = response;
+                    if (status !== 200) {
+                        throw new Error(`HTTP error: ${status}`);
+                    }
+                }
+
+                const data = await response.json();
+                const exchangeRate = data.rates[toCurrency];
+                cache[key] = exchangeRate;
+                return exchangeRate;
+            } catch (error) {
+                console.error('Error fetching exchange rate:', error);
+                displayError('Failed to fetch exchange rate. Please check console for details.');
+                return null;
+            }
+        }
+
+        async function convertCurrency() {
+            const amountElement = document.getElementById('amount');
+            const fromCurrencyElement = document.getElementById('fromCurrency');
+            const toCurrencyElement = document.getElementById('toCurrency');
+            const resultElement = document.getElementById('result');
+            const errorMessageElement = document.getElementById('error-message');
+
+            // Clear previous error messages and results
+            errorMessageElement.textContent = '';
+            resultElement.textContent = '';
+
+            if (!amountElement || !fromCurrencyElement || !toCurrencyElement || !resultElement || !errorMessageElement) {
+                console.error('One or more elements not found in DOM.');
+                return;
+            }
+
+            const amount = parseFloat(amountElement.value);
+            const fromCurrency = fromCurrencyElement.value;
+            const toCurrency = toCurrencyElement.value;
+
+            if (isNaN(amount) || amount < 0) {
+                displayError('Please enter a valid positive number for the amount.');
+                return;
+            }
+
+            const exchangeRate = await getExchangeRate(fromCurrency, toCurrency);
+            if (exchangeRate === null) {
+                return; // getExchangeRate already displays an error, so just exit
+            }
+
+            const convertedAmount = (amount * exchangeRate).toFixed(2);
+            resultElement.textContent = `${amount} ${fromCurrency} = ${convertedAmount} ${toCurrency}`;
+        }
+
+        function displayError(errorMessage) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = errorMessage;
+        }
+    </script>
+</body>
+</html>
+
